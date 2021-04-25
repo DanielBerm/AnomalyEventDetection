@@ -1,7 +1,9 @@
 #!/bin/bash
 
 
-LIST=links.list
+LIST=linksdev.list
+LIST=linkseval.list
+LIST=linksaddit.list
 DST_DIR=/tmp
 
 
