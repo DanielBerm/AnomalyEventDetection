@@ -2,8 +2,8 @@
 
 
 LIST=linksdev.list
-LIST=linkseval.list
-LIST=linksaddit.list
+#LIST=linkseval.list
+#LIST=linksaddit.list
 DST_DIR=/tmp
 
 
