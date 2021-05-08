@@ -22,6 +22,7 @@ import librosa.feature
 import numpy
 import pandas as pd
 from sklearn.metrics import roc_auc_score
+import keras
 import keras.models
 from keras.layers import Input, Dense, BatchNormalization
 from keras.models import Model
