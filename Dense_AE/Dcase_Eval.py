@@ -28,8 +28,8 @@ from keras.models import Model
 from tqdm import tqdm
 import tensorflow as tf
 
-tf.random.set_seed(1234)
-
+#tf.random.set_seed(1234)
+tf.compat.v1.random.set_random_seed(1234)
 
 def file_load(wav_name, mono=False):
     """
@@ -568,7 +568,7 @@ if __name__ == '__main__':
     path = os.getcwd()
 
     folders = []
-    foldersForChallenge = ["ToyCar", "ToyConveyor", "valve", "slider", "pump", "fan"]  # machines
+    foldersForChallenge = ["mix"]  # "ToyCar", "ToyConveyor", "valve", "slider", "pump", "fan"]  # machines
 
     # iterate machines
     for f in foldersForChallenge:
@@ -578,7 +578,7 @@ if __name__ == '__main__':
         print("Machine Processing", f)
 
         # load model
-        AEBest = keras.models.load_model("modelBest" + "_" + f + "Additional.H5")
+        AEBest = keras.models.load_model("modelBest" + "_" + f + ".H5")
 
         # eval model
         eval_model_stream_evaluation(path + "/" + f, AEBest, f)

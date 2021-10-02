@@ -24,7 +24,7 @@ import pandas as pd
 from sklearn.metrics import roc_auc_score
 import keras
 import keras.models
-from keras.layers import Input, Dense, BatchNormalization
+from keras.layers import Input, Dense, BatchNormalization, Dropout
 from keras.models import Model
 from tqdm.notebook import tqdm as tqdm_notebook
 from tqdm import tqdm
@@ -33,7 +33,7 @@ import tensorflow as tf
 tf.compat.v1.random.set_random_seed(1234)
 
 
-def file_load(wav_name, mono=False):
+def file_load(wav_name, mono=True):
     """
     load .wav file.
 
@@ -54,7 +54,7 @@ def file_load(wav_name, mono=False):
 
 ########################################################################
 
-def file_load_stream(wav_name, mono=False):
+def file_load_stream(wav_name, mono=True):
     try:
         sr = librosa.get_samplerate(wav_name)
         frameSize = sr
@@ -231,7 +231,8 @@ def file_to_vector_array_stream_test_data(file_name,
                                                          n_fft=n_fft,
                                                          hop_length=hop_length,
                                                          n_mels=n_mels,
-                                                         power=power)
+                                                         power=power,
+                                                         center=False)
 
         # 03 convert melspectrogram
 
@@ -290,11 +291,12 @@ def numpy_dataset_stream_noaugment(train_files):
 
     from pqdm.processes import pqdm
     import multiprocessing
-    d = pqdm(train_files, par_file, n_jobs=multiprocessing.cpu_count())
+    d = pqdm(train_files, par_file, n_jobs=4) #multiprocessing.cpu_count())
     list_audio = []
     for i in d:
         list_audio.append(i)
     newlist = numpy.asarray(list_audio)
+    print(newlist.shape)
     newlist = newlist.reshape(newlist.shape[0] * newlist.shape[1], newlist.shape[2])
     return newlist
 
@@ -309,42 +311,43 @@ def get_model(inputDim, name_for_model=""):
     # slider!
     # ver o caso para o toycar! com elu e o que acontecerá?
     inputLayer = Input(shape=(inputDim,))
+    dropout_rate = 0.75
 
     h = Dense(512)(inputLayer)  # estava 128
-    h = BatchNormalization()(h)
-    h = keras.activations.relu(h)
+    h = BatchNormalization()(h)  # Dropout(dropout_rate)(h)
+    h = keras.layers.PReLU()(h)  # keras.layers.LeakyReLU()(h)  # keras.layers.Activation(keras.activations.relu)(h)  #
 
     h = Dense(512)(h)
     h = BatchNormalization()(h)
-    h = keras.activations.relu(h)
+    h = keras.layers.PReLU()(h)
 
     h = Dense(512)(h)
     h = BatchNormalization()(h)
-    h = keras.activations.relu(h)
+    h = keras.layers.PReLU()(h)
 
     h = Dense(512)(h)
     h = BatchNormalization()(h)
-    h = keras.activations.relu(h)
+    h = keras.layers.PReLU()(h)
 
     h = Dense(8)(h)
     h = BatchNormalization()(h)
-    h = keras.activations.relu(h)
+    h = keras.layers.PReLU()(h)
 
     h = Dense(512)(h)
     h = BatchNormalization()(h)
-    h = keras.activations.relu(h)
+    h = keras.layers.PReLU()(h)
 
     h = Dense(512)(h)
     h = BatchNormalization()(h)
-    h = keras.activations.relu(h)
+    h = keras.layers.PReLU()(h)
 
     h = Dense(512)(h)
     h = BatchNormalization()(h)
-    h = keras.activations.relu(h)
+    h = keras.layers.PReLU()(h)
 
     h = Dense(512)(h)
     h = BatchNormalization()(h)
-    h = keras.activations.relu(h)
+    h = keras.layers.PReLU()(h)
 
     h = Dense(inputDim)(h)
 
@@ -445,7 +448,7 @@ def eval_model_stream(target_dir, model, machine_type):
 
         # setup anomaly score file path
         anomaly_score_csv = ("{result}/anomaly_score_{machine_type}_{id_str}.csv"
-                             .format(result="models/results/",
+                             .format(result="models/results",
                                      machine_type=machine_type,
                                      id_str=id_str))
 
@@ -556,8 +559,10 @@ if __name__ == '__main__':
     path = os.getcwd()
 
     folders = []
-    foldersForChallenge = ["ToyCar", "ToyConveyor", "valve", "slider", "pump", "fan"]  # machines
-    
+    #foldersForChallenge = ["ToyCar", "ToyConveyor", "valve", "slider", "pump", "fan"]  # machines
+
+    #Different dartabase list (Prev. line must be commented)
+    foldersForChallenge = ["mix"]
 
     for f in foldersForChallenge:
         callbacks_listv1 = [
@@ -577,19 +582,19 @@ if __name__ == '__main__':
             )]
         files_Read = []
         print("Machine Processing", f)
-        os.chdir(path + "/dev_data/" + f + "/train/") #****CAMBIOS******************************************************
+        os.chdir(path + "/extradata/" + f + "/train/")  #"/dev_data/" + f + "/train/") # set directory where training data is **********
         for file in glob.glob("*.wav"):
             # print(file)
             files_Read.append(file)
 
-        b = numpy_dataset_stream_noaugment(files_Read)  # data read numpy_dataset_stream_noaugment --> no augmentation
+        b = numpy_dataset_stream_noaugment(files_Read[:])  # 1593 [:2600])  data read numpy_dataset_stream_noaugment --> no augmentation
         AE = get_model(inputDim=b.shape[1], name_for_model=f)
         AE.fit(b, b, batch_size=512, epochs=100, callbacks=callbacks_listv1, validation_split=0.3)
         os.chdir(path)
         AEBest = keras.models.load_model("modelBest" + "_" + f + ".H5")
-        dataAE = eval_model_stream(path + "/" + f, AEBest, f)
+        dataAE = eval_model_stream(path + "/extradata" + "/" + f, AEBest, f)  # "/dev_data" + "/" + f, AEBest, f) ******************
         data_csv = pd.DataFrame(dataAE, columns=dataAE[1])[2:]
-        modelEvals = os.getcwd() + "/models/results"
+        modelEvals = os.getcwd() + "/models/results3/activation/prelu"
         # mudar o path para o eval para onde querem guardar!
         data_csv.to_csv(modelEvals + "/" + f + ".csv")
         print("AUC Average", numpy.mean(data_csv["AUC"]))
